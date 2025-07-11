@@ -80,10 +80,10 @@
                 let nbpData = "";
                 combinedMidi.forEach(note => {
                     const noteNumber = note.midi;
-                    const startTime = note.time.toFixed(2);
-                    const endTime = (note.time + note.duration).toFixed(2);
+                    const startTime = note.time.toFixed(2)+5;
+                    const endTime = (note.time + note.duration).toFixed(2)+5;
                     
-                    nbpData += `${noteNumber}\n${startTime+5}\n${endTime+5}\n`;
+                    nbpData += `${noteNumber}\n${startTime}\n${endTim}\n`;
                 });
 
                 output.value = nbpData;
