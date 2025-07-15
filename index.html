@@ -49,91 +49,92 @@
     <script src="https://cdn.jsdelivr.net/npm/@tonejs/midi@2.0.27/build/Midi.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.39/Tone.js"></script>
     <script>
-        // Function to convert MIDI note number to note name
-        function midiNoteToName(noteNumber) {
-            const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-            const octave = Math.floor(noteNumber / 12) - 1;
-            const note = noteNames[noteNumber % 12];
-            return note + octave;
+    // Function to convert MIDI note number to note name
+    function midiNoteToName(noteNumber) {
+        const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+        const octave = Math.floor(noteNumber / 12) - 1;
+        const note = noteNames[noteNumber % 12];
+        return note + octave;
+    }
+
+    async function convertMidiToNBP() {
+        const fileInput = document.getElementById('midiFileInput');
+        const output = document.getElementById('output');
+        const downloadButton = document.getElementById('downloadButton');
+        const playButton = document.getElementById('playButton');
+        if (fileInput.files.length === 0) {
+            alert("Please select a MIDI file.");
+            return;
         }
 
-        async function convertMidiToNBP() {
-            const fileInput = document.getElementById('midiFileInput');
-            const output = document.getElementById('output');
-            const downloadButton = document.getElementById('downloadButton');
-            const playButton = document.getElementById('playButton');
-            if (fileInput.files.length === 0) {
-                alert("Please select a MIDI file.");
-                return;
-            }
+        const file = fileInput.files[0];
+        const reader = new FileReader();
 
-            const file = fileInput.files[0];
-            const reader = new FileReader();
+        reader.onload = async function(event) {
+            const arrayBuffer = event.target.result;
+            const midi = new Midi(arrayBuffer);
 
-            reader.onload = async function(event) {
-                const arrayBuffer = event.target.result;
-                const midi = new Midi(arrayBuffer);
-
-                // Combine all channels into one
-                let combinedMidi = combineChannels(midi);
+            // Combine all channels into one
+            let combinedMidi = combineChannels(midi);
+            
+            let nbpData = "";
+            combinedMidi.forEach(note => {
+                const noteNumber = note.midi;
+                const startTime = (note.time + 5).toFixed(2); // Add 5-second delay
+                const endTime = (note.time + note.duration + 5).toFixed(2); // Add 5-second delay
                 
-                let nbpData = "";
-                combinedMidi.forEach(note => {
-                    const noteNumber = note.midi;
-                    const startTime = note.time.toFixed(2);
-                    const endTime = (note.time + note.duration).toFixed(2);
-                    
-                    nbpData += `${noteNumber}\n${startTime}\n${endTime}\n`;
-                });
-
-                output.value = nbpData;
-                downloadButton.style.display = 'block';
-                playButton.style.display = 'block';
-
-                // Play the combined MIDI when the button is clicked
-                playButton.addEventListener('click', function() {
-                    playCombinedMidi(combinedMidi);
-                });
-            };
-
-            reader.readAsArrayBuffer(file);
-        }
-
-        function combineChannels(midi) {
-            const combinedTracks = [];
-            midi.tracks.forEach(track => {
-                track.notes.forEach(note => {
-                    combinedTracks.push(note);
-                });
+                nbpData += `${noteNumber}\n${startTime}\n${endTime}\n`;
             });
 
-            // Sort events by time to maintain the correct order
-            combinedTracks.sort((a, b) => a.time - b.time);
+            output.value = nbpData;
+            downloadButton.style.display = 'block';
+            playButton.style.display = 'block';
 
-            return combinedTracks;
-        }
-
-        function playCombinedMidi(combinedTracks) {
-            const synth = new Tone.Synth().toDestination();
-
-            combinedTracks.forEach(note => {
-                synth.triggerAttackRelease(note.name, note.duration, note.time);
+            // Play the combined MIDI when the button is clicked
+            playButton.addEventListener('click', function() {
+                playCombinedMidi(combinedMidi);
             });
-        }
+        };
 
-        function downloadNBP() {
-            const output = document.getElementById('output').value;
-            const blob = new Blob([output], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'output.nbp';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
-    </script>
+        reader.readAsArrayBuffer(file);
+    }
+
+    function combineChannels(midi) {
+        const combinedTracks = [];
+        midi.tracks.forEach(track => {
+            track.notes.forEach(note => {
+                combinedTracks.push(note);
+            });
+        });
+
+        // Sort events by time to maintain the correct order
+        combinedTracks.sort((a, b) => a.time - b.time);
+
+        return combinedTracks;
+    }
+
+    function playCombinedMidi(combinedTracks) {
+        const synth = new Tone.Synth().toDestination();
+        const now = Tone.now();
+
+        combinedTracks.forEach(note => {
+            synth.triggerAttackRelease(note.name, note.duration, now + note.time + 5); // Add 5-second delay
+        });
+    }
+
+    function downloadNBP() {
+        const output = document.getElementById('output').value;
+        const blob = new Blob([output], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'output.nbp';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+</script>
 
     <span id="PING_CONTENT_DLS_POPUP" style="display: none;"></span>
     <div style="background-color: transparent; border: none; bottom: 15px; display: block; margin: 0px; opacity: 1; padding: 0px; position: fixed; right: 15px; z-index: 2147483647;"></div>
